@@ -80,24 +80,33 @@ PUSH_PROXY_VERSION=6.4.6
 1. **Create Apple Auth Key**
    - Go to: https://developer.apple.com/account/resources/authkeys/list
    - Click "+" to create a new key
-   - Name it: "Mattermost Push Notifications"
-   - Enable: **"Apple Push Notifications service (APNs)"** ✅
-   - Click "Continue" → "Register" → "Download"
+   - **Key Name**: "Mattermost Push Notifications" (or any descriptive name)
+   - **Enable Services**: Check **"Apple Push Notifications service (APNs)"** ✅
+   - Click "Continue"
+
+2. **Configure Key Settings** (when prompted):
+   - **Environment**: Select **"Sandbox & Production"**
+     - This allows the key to work in both testing and production
+     - Recommended for flexibility
+   - **Key Restriction**: Select **"Team Scoped (All Topics)"**
+     - This allows the key to work with all apps under your Team ID
+     - More flexible than "Topic Specific"
+   - Click "Register" → "Download"
    - **Save the `.p8` file securely** (you can only download once!)
 
-2. **Important Settings:**
-   - **Environment**: Auth Keys work for both Development and Production automatically
-   - **Key Restriction**: Not applicable - Auth Keys work for all apps under your Team ID
-   - **Services**: Only enable "Apple Push Notifications service (APNs)"
+3. **Important Notes:**
+   - Auth Keys work for both Development and Production environments
+   - They work for all apps under your Team ID (no need to create multiple keys)
+   - Unlike certificates, Auth Keys never expire (unless revoked)
 
-3. **Note these values** (you'll need them for `.env`):
+4. **Note these values** (you'll need them for `.env`):
    ```
    File: AuthKey_XYZ9876543.p8
    Key ID: XYZ9876543 (from filename)
    Team ID: ABC1234DEF (from Apple Developer portal, top right)
    ```
 
-4. **Save the `.p8` file** to your push proxy directory:
+5. **Save the `.p8` file** to your push proxy directory:
    ```bash
    # Copy to the push proxy directory
    copy AuthKey_XYZ9876543.p8 G:\path\to\mattermost-push-proxy-cloudron-app\
