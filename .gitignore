@@ -1,0 +1,11 @@
+node_modules/
+.DS_Store
+*.log
+.env
+.env.local
+.cloudron/
+
+# Private deployment scripts (contain sensitive info)
+install-cloudron.bat
+update-cloudron.bat
+Dockerfile.bak

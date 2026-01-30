@@ -1,0 +1,24 @@
+{
+  "id": "org.mattermost.pushproxy",
+  "title": "Mattermost Push Proxy",
+  "author": "Mattermost Team",
+  "description": "file://DESCRIPTION.md",
+  "tagline": "Push notification service for custom Mattermost mobile apps",
+  "version": "0.1.0",
+  "upstreamVersion": "6.4.6",
+  "healthCheckPath": "/api/v1/health",
+  "httpPort": 8066,
+  "addons": {
+    "localstorage": {}
+  },
+  "manifestVersion": 2,
+  "website": "https://mattermost.org/",
+  "contactEmail": "support@cloudron.io",
+  "icon": "logo.png",
+  "changelog": "file://CHANGELOG.md",
+  "tags": [
+    "push-notifications",
+    "mattermost"
+  ],
+  "minBoxVersion": "8.1.0"
+}
