@@ -1,0 +1,31 @@
+{
+    "ListenAddress":":8066",
+    "ThrottlePerSec":300,
+    "ThrottleMemoryStoreSize":50000,
+    "ThrottleVaryByHeader":"X-Forwarded-For",
+    "EnableMetrics": false,
+    "SendTimeoutSec": 30,
+    "RetryTimeoutSec": 8,
+    "ApplePushSettings":[
+        {
+            "Type":"apple_rn",
+            "ApplePushUseDevelopment":false,
+            "ApplePushCertPrivate":"/app/data/certs/apple_push_cert.pem",
+            "ApplePushCertPassword":"",
+            "ApplePushTopic":"##APPLE_PUSH_TOPIC##",
+            "AppleAuthKeyFile": "/app/data/certs/apple_auth_key.p8",
+            "AppleAuthKeyID": "##APPLE_AUTH_KEY_ID##",
+            "AppleTeamID": "##APPLE_TEAM_ID##"
+        }
+    ],
+    "AndroidPushSettings": [
+        {
+            "Type":"android_rn",
+            "ServiceFileLocation":"/app/data/certs/firebase_service_account.json"
+        }
+    ],
+    "EnableConsoleLog": true,
+    "EnableFileLog": false,
+    "LogFileLocation": "",
+    "LogFormat": "plain"
+}
