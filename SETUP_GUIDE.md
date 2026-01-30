@@ -127,13 +127,14 @@ PUSH_PROXY_VERSION=6.4.6
    - Click "Register app"
    - **Download** `google-services.json` (you'll need this for the mobile app)
 
-3. **Skip the "Add Firebase SDK" step** shown in Firebase Console
+3. **Complete the "Add Firebase SDK" step** (Firebase Console requires this)
    - Firebase will show you Gradle instructions to add the SDK
-   - **You can skip this** - the mattermost-mobile app already has Firebase configured
-   - The app already has:
+   - **Just click through this step** - the mattermost-mobile app already has Firebase configured
+   - You don't need to make any code changes - the app already has:
      - Google services Gradle plugin (`com.google.gms:google-services:4.4.2`)
      - Firebase Messaging SDK (`firebase-messaging:24.1.0`)
-   - Just make sure you downloaded the `google-services.json` file (already done in step 2)
+   - Click "Next" or "Continue" to proceed past this step
+   - Then click "Continue to console" or "Finish"
 
 4. **Generate Service Account Key** (for push proxy server)
    - In Firebase Console, click gear icon → "Project settings"
@@ -303,7 +304,7 @@ In your `mattermost-mobile` repository:
 
 In your `mattermost-mobile` repository:
 
-**Note:** The mattermost-mobile app already has Firebase SDK configured. You just need to add your `google-services.json` file.
+**Note:** The mattermost-mobile app already has Firebase SDK configured. You just need to replace the `google-services.json` file with your own.
 
 1. **Download your Firebase config:**
    - In Firebase Console, after adding your Android app
