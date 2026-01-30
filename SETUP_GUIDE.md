@@ -121,21 +121,39 @@ PUSH_PROXY_VERSION=6.4.6
 
 2. **Add Android App** (if not already added)
    - Click "Add app" → Android icon
-   - Package name: Your Android bundle ID (e.g., `com.yourcompany.mattermost`)
-   - Download `google-services.json` (needed for mobile app build)
+   - **Android package name**: `com.mattermost.rnbeta` ✅ (must match exactly!)
+   - **App nickname (optional)**: `Mattermost Mobile` (or any friendly name)
+   - **Debug signing certificate SHA-1 (optional)**: Leave blank (not needed for push)
+   - Click "Register app"
+   - **Download** `google-services.json` (you'll need this for the mobile app)
 
-3. **Generate Service Account Key**
+3. **Skip the "Add Firebase SDK" step** shown in Firebase Console
+   - Firebase will show you Gradle instructions to add the SDK
+   - **You can skip this** - the mattermost-mobile app already has Firebase configured
+   - The app already has:
+     - Google services Gradle plugin (`com.google.gms:google-services:4.4.2`)
+     - Firebase Messaging SDK (`firebase-messaging:24.1.0`)
+   - Just make sure you downloaded the `google-services.json` file (already done in step 2)
+
+4. **Generate Service Account Key** (for push proxy server)
    - In Firebase Console, click gear icon → "Project settings"
    - Go to "Service accounts" tab
    - Click "Generate new private key"
    - Confirm and download JSON file
    - **Save securely** (contains private credentials)
+   - **Note:** This is different from `google-services.json` - you need both files:
+     - `google-services.json` → for mobile app
+     - Service account JSON → for push proxy server
 
-4. **Save the JSON file** to your push proxy directory:
+5. **Save the service account JSON file** to your push proxy directory:
    ```bash
-   # Copy to the push proxy directory
-   copy firebase-service-account.json G:\path\to\mattermost-push-proxy-cloudron-app\
+   # Copy to the push proxy directory (rename to firebase-service-account.json)
+   copy firebase-adminsdk-xxxxx.json G:\path\to\mattermost-push-proxy-cloudron-app\firebase-service-account.json
    ```
+
+**Summary of Firebase files needed:**
+- **`google-services.json`** → Goes to `mattermost-mobile/android/app/` (for mobile app)
+- **`firebase-service-account.json`** → Goes to push proxy directory (for push proxy server)
 
 ### Phase 2: Deploy Push Proxy to Cloudron
 
@@ -285,14 +303,40 @@ In your `mattermost-mobile` repository:
 
 In your `mattermost-mobile` repository:
 
-1. **Add Firebase config:**
-   - Copy `google-services.json` to `android/app/google-services.json`
+**Note:** The mattermost-mobile app already has Firebase SDK configured. You just need to add your `google-services.json` file.
 
-2. **Verify package name** matches:
+1. **Download your Firebase config:**
+   - In Firebase Console, after adding your Android app
+   - Click "Download google-services.json"
+   - Save the file
+
+2. **Replace the existing Firebase config:**
+   ```bash
+   # Copy your google-services.json to the app directory
+   copy google-services.json G:\Modding\_Github\mattermost-mobile\android\app\google-services.json
+   ```
+
+   **Important:** This replaces the existing placeholder file. Make sure to:
+   - Overwrite the existing file
+   - Verify the package name inside matches: `"package_name": "com.mattermost.rnbeta"`
+
+3. **Verify package name** matches:
    - Check `android/app/build.gradle`
    - `applicationId` should match `ANDROID_PACKAGE_NAME` in push proxy `.env`
+   - Should be: `com.mattermost.rnbeta`
 
-3. **Build APK:**
+4. **Verify Firebase SDK is configured** (already done, but to confirm):
+   - Check `android/build.gradle` has:
+     ```gradle
+     classpath('com.google.gms:google-services:4.4.2')
+     ```
+   - Check `android/app/build.gradle` has at the bottom:
+     ```gradle
+     apply plugin: 'com.google.gms.google-services'
+     ```
+   - Firebase Messaging dependency is already included
+
+5. **Build APK:**
    ```bash
    cd /path/to/mattermost-mobile
    npm run build:android
