@@ -23,7 +23,55 @@ Before starting, you need:
    - iOS: `com.yourcompany.mattermost` (example)
    - Android: `com.yourcompany.mattermost` (example)
 
-## Step-by-Step Setup
+## Quick Start
+
+### Phase 0: Configure Environment
+
+#### 1. Create Your Configuration File
+
+```bash
+cd /path/to/mattermost-push-proxy-cloudron-app
+
+# Create .env from template
+.\setup-env.bat
+
+# Or manually:
+copy .env.example .env
+notepad .env
+```
+
+#### 2. Fill in Your Values
+
+Edit `.env` and provide:
+
+```bash
+# Cloudron Settings
+CLOUDRON_DOMAIN=my.yourdomain.com
+PUSH_PROXY_DOMAIN=push.yourdomain.com
+MATTERMOST_DOMAIN=chat.yourdomain.com
+
+# Docker Hub
+DOCKER_USERNAME=yourusername
+
+# iOS (get these from Apple Developer portal)
+IOS_BUNDLE_ID=com.yourcompany.mattermost
+APPLE_TEAM_ID=ABC1234DEF
+APPLE_AUTH_KEY_ID=XYZ9876543
+APPLE_AUTH_KEY_FILE=AuthKey_XYZ9876543.p8
+
+# Android (get these from Firebase)
+ANDROID_PACKAGE_NAME=com.yourcompany.mattermost
+FIREBASE_SERVICE_ACCOUNT_FILE=firebase-service-account.json
+
+# Version
+PUSH_PROXY_VERSION=6.4.6
+```
+
+**Where to find these values:**
+- iOS values: `mattermost-mobile/fastlane/.env.ios.testflight` (if using TestFlight)
+- Android package: `mattermost-mobile/android/app/build.gradle` (look for `applicationId`)
+- Apple Team ID: https://developer.apple.com/account (top right corner)
+- Apple Auth Key ID: From the `.p8` filename
 
 ### Phase 1: Get Push Certificates
 
@@ -33,30 +81,39 @@ Before starting, you need:
    - Go to: https://developer.apple.com/account/resources/authkeys/list
    - Click "+" to create a new key
    - Name it: "Mattermost Push Notifications"
-   - Enable: "Apple Push Notifications service (APNs)"
+   - Enable: **"Apple Push Notifications service (APNs)"** ✅
    - Click "Continue" → "Register" → "Download"
    - **Save the `.p8` file securely** (you can only download once!)
-   - **Note the Key ID** (e.g., `AB12CD34EF`)
-   - **Note your Team ID** (found in top right of Apple Developer portal, e.g., `XYZ1234567`)
 
-2. **Save the information**
+2. **Important Settings:**
+   - **Environment**: Auth Keys work for both Development and Production automatically
+   - **Key Restriction**: Not applicable - Auth Keys work for all apps under your Team ID
+   - **Services**: Only enable "Apple Push Notifications service (APNs)"
+
+3. **Note these values** (you'll need them for `.env`):
    ```
-   File: AuthKey_AB12CD34EF.p8
-   Key ID: AB12CD34EF
-   Team ID: XYZ1234567
+   File: AuthKey_XYZ9876543.p8
+   Key ID: XYZ9876543 (from filename)
+   Team ID: ABC1234DEF (from Apple Developer portal, top right)
+   ```
+
+4. **Save the `.p8` file** to your push proxy directory:
+   ```bash
+   # Copy to the push proxy directory
+   copy AuthKey_XYZ9876543.p8 G:\path\to\mattermost-push-proxy-cloudron-app\
    ```
 
 #### Android - Firebase Service Account
 
-1. **Create Firebase Project**
+1. **Create/Select Firebase Project**
    - Go to: https://console.firebase.google.com/
-   - Click "Add project" or select existing project
+   - Create new project or select existing one
    - Name it: "Mattermost Mobile"
 
 2. **Add Android App** (if not already added)
    - Click "Add app" → Android icon
    - Package name: Your Android bundle ID (e.g., `com.yourcompany.mattermost`)
-   - Download `google-services.json` (needed for mobile app)
+   - Download `google-services.json` (needed for mobile app build)
 
 3. **Generate Service Account Key**
    - In Firebase Console, click gear icon → "Project settings"
@@ -65,53 +122,49 @@ Before starting, you need:
    - Confirm and download JSON file
    - **Save securely** (contains private credentials)
 
+4. **Save the JSON file** to your push proxy directory:
+   ```bash
+   # Copy to the push proxy directory
+   copy firebase-service-account.json G:\path\to\mattermost-push-proxy-cloudron-app\
+   ```
+
 ### Phase 2: Deploy Push Proxy to Cloudron
 
-#### 1. Build and Push Docker Image
+#### One-Step Installation
 
 ```bash
 cd /path/to/mattermost-push-proxy-cloudron-app
 
-# Login to Docker Hub
+# Login to Docker and Cloudron (first time only)
 docker login
-
-# Login to Cloudron
 cloudron login
 
-# Deploy (builds and pushes to Docker Hub)
-.\deploy.bat 6.4.6
+# Install to Cloudron (builds, pushes, and installs automatically)
+.\install-cloudron.bat
 ```
 
-This will:
-- Build the Docker image
-- Push to Docker Hub as `yourusername/mattermost-push-proxy-cloudron`
-- Take ~5-10 minutes
+**What this does:**
+1. Reads your `.env` configuration
+2. Builds the Docker image with your settings
+3. Pushes to Docker Hub
+4. Installs the app to your Cloudron instance
+5. Provides next steps for uploading certificates
 
-#### 2. Install on Cloudron
+**Expected time:** ~10-15 minutes
 
-1. Go to Cloudron dashboard: https://my.yourdomain.com
-2. Click "App Store"
-3. Search for "Mattermost Push Proxy" (if published)
-   - OR click "Install Unverified App"
-   - Docker image: `yourusername/mattermost-push-proxy-cloudron:latest`
-4. Choose subdomain: e.g., `push` → `push.yourdomain.com`
-5. Click "Install"
-6. Wait for installation (~2-3 minutes)
+#### Upload Certificates After Installation
 
-#### 3. Upload Certificates via Cloudron CLI
+After the install script completes, upload your certificates:
 
 ```bash
-# Set your app domain
-set APP_DOMAIN=push.yourdomain.com
-
 # Upload iOS Auth Key
-cloudron push --server my.yourdomain.com --app %APP_DOMAIN% AuthKey_AB12CD34EF.p8 /app/data/certs/apple_auth_key.p8
+cloudron push --app push.yourdomain.com AuthKey_XYZ9876543.p8 /app/data/certs/apple_auth_key.p8
 
 # Upload Android Service Account
-cloudron push --server my.yourdomain.com --app %APP_DOMAIN% firebase-service-account.json /app/data/certs/firebase_service_account.json
+cloudron push --app push.yourdomain.com firebase-service-account.json /app/data/certs/firebase_service_account.json
 ```
 
-#### 4. Configure Push Proxy
+#### Configure Push Proxy
 
 **Option A: Via Cloudron Web Terminal**
 
@@ -126,13 +179,13 @@ cloudron push --server my.yourdomain.com --app %APP_DOMAIN% firebase-service-acc
 
 ```bash
 # Download config
-cloudron pull --server my.yourdomain.com --app push.yourdomain.com /app/data/config/mattermost-push-proxy.json ./push-proxy-config.json
+cloudron pull --app push.yourdomain.com /app/data/config/mattermost-push-proxy.json ./push-proxy-config.json
 
 # Edit locally
 notepad push-proxy-config.json
 
 # Upload back
-cloudron push --server my.yourdomain.com --app push.yourdomain.com ./push-proxy-config.json /app/data/config/mattermost-push-proxy.json
+cloudron push --app push.yourdomain.com ./push-proxy-config.json /app/data/config/mattermost-push-proxy.json
 ```
 
 **Edit these values:**
@@ -144,8 +197,8 @@ cloudron push --server my.yourdomain.com --app push.yourdomain.com ./push-proxy-
       "ApplePushUseDevelopment": false,
       "ApplePushTopic": "com.yourcompany.mattermost",
       "AppleAuthKeyFile": "/app/data/certs/apple_auth_key.p8",
-      "AppleAuthKeyID": "AB12CD34EF",
-      "AppleTeamID": "XYZ1234567"
+      "AppleAuthKeyID": "XYZ9876543",
+      "AppleTeamID": "ABC1234DEF"
     }
   ],
   "AndroidPushSettings": [
@@ -157,37 +210,28 @@ cloudron push --server my.yourdomain.com --app push.yourdomain.com ./push-proxy-
 }
 ```
 
-Replace:
-- `com.yourcompany.mattermost` → Your iOS bundle ID
-- `AB12CD34EF` → Your Apple Auth Key ID
-- `XYZ1234567` → Your Apple Team ID
+**Use your values from `.env`:**
+- `ApplePushTopic` → `IOS_BUNDLE_ID`
+- `AppleAuthKeyID` → `APPLE_AUTH_KEY_ID`
+- `AppleTeamID` → `APPLE_TEAM_ID`
 
-#### 5. Restart the App
+#### Restart and Verify
 
-In Cloudron dashboard:
-1. Click on the push proxy app
-2. Click "Restart"
-3. Wait for it to come back online (~30 seconds)
+1. **Restart the app** in Cloudron dashboard
 
-#### 6. Verify Health Check
-
-Test the push proxy is working:
-```bash
-curl https://push.yourdomain.com/api/v1/health
-```
-
-Should return:
-```json
-{"status":"ok"}
-```
+2. **Verify health check:**
+   ```bash
+   curl https://push.yourdomain.com/api/v1/health
+   # Should return: {"status":"ok"}
+   ```
 
 ### Phase 3: Configure Mattermost Server
 
-#### Update Mattermost Config
+#### Update Mattermost Push Notification Server
 
 **Option A: Via System Console (Web UI)**
 
-1. Login as System Admin to https://chat.yourdomain.com
+1. Login as System Admin
 2. Go to **System Console** (top left menu)
 3. Navigate to **Environment > Push Notification Server**
 4. Select **"Manually enter Push Notification Service location"**
@@ -196,14 +240,7 @@ Should return:
 
 **Option B: Via Config File**
 
-Edit your Mattermost Cloudron app config:
-
-```bash
-cd /path/to/mattermost-cloudron-app
-
-# Update config.json.template
-# Line 219: Change PushNotificationServer value
-```
+If you manage Mattermost via config files:
 
 ```json
 {
@@ -215,51 +252,38 @@ cd /path/to/mattermost-cloudron-app
 }
 ```
 
-Rebuild and deploy Mattermost:
-```bash
-.\build.bat 11.3.0-custom.5 "Configure custom push proxy"
-# Wait for GitHub Actions build...
-
-cd /path/to/mattermost-cloudron-app
-.\deploy.bat 11.3.0-custom.5
-```
-
 ### Phase 4: Configure Mobile App
 
 #### iOS App Configuration
 
 In your `mattermost-mobile` repository:
 
-1. **Update bundle ID** (if not already done)
-   - `ios/Mattermost.xcodeproj` → Bundle Identifier: `com.yourcompany.mattermost`
+1. **Verify bundle ID** matches your `.env`:
+   - Check `fastlane/.env.ios.testflight`
+   - `MAIN_APP_IDENTIFIER` should match `IOS_BUNDLE_ID` in push proxy `.env`
 
-2. **Add Push Notifications capability**
+2. **Verify Push Notifications capability** is enabled:
    - Xcode → Project → Signing & Capabilities
-   - Click "+ Capability"
-   - Add "Push Notifications"
+   - Should have "Push Notifications" capability
 
-3. **Update push notification handling**
-   - The app should already be configured for APNS
-   - Verify `ios/Mattermost/AppDelegate.mm` has push notification code
-
-4. **Build and sign with your Team ID**
+3. **Build and deploy** via TestFlight:
+   ```bash
+   cd /path/to/mattermost-mobile
+   ./scripts/deploy-testflight.sh
+   ```
 
 #### Android App Configuration
 
 In your `mattermost-mobile` repository:
 
-1. **Add Firebase config**
+1. **Add Firebase config:**
    - Copy `google-services.json` to `android/app/google-services.json`
 
-2. **Update bundle ID** (if not already done)
-   - Edit `android/app/build.gradle`:
-     ```gradle
-     defaultConfig {
-         applicationId "com.yourcompany.mattermost"
-     }
-     ```
+2. **Verify package name** matches:
+   - Check `android/app/build.gradle`
+   - `applicationId` should match `ANDROID_PACKAGE_NAME` in push proxy `.env`
 
-3. **Build APK**
+3. **Build APK:**
    ```bash
    cd /path/to/mattermost-mobile
    npm run build:android
@@ -269,13 +293,13 @@ In your `mattermost-mobile` repository:
 
 #### 1. Install Mobile App
 
-- **iOS**: Install via TestFlight or direct installation
+- **iOS**: Install via TestFlight
 - **Android**: Install APK on device
 
 #### 2. Login to Mattermost
 
 - Open app
-- Enter server URL: `https://chat.yourdomain.com`
+- Enter server URL (your Mattermost server)
 - Login with your credentials
 
 #### 3. Test Notifications
@@ -288,43 +312,92 @@ In your `mattermost-mobile` repository:
 
 **No notifications received?**
 
-1. **Check push proxy logs**
+1. **Check push proxy logs:**
    ```bash
-   cloudron logs --server my.yourdomain.com --app push.yourdomain.com
+   cloudron logs --app push.yourdomain.com
    ```
 
-2. **Verify server config**
+2. **Verify certificates are uploaded:**
    ```bash
-   # In Mattermost server
-   curl http://localhost:8065/api/v4/config/client
-   # Look for "SendPushNotifications": true
+   cloudron exec --app push.yourdomain.com -- ls -la /app/data/certs/
    ```
 
-3. **Check mobile app registration**
-   - App should register device token on login
-   - Check for errors in mobile app logs
+3. **Verify push proxy config:**
+   ```bash
+   cloudron exec --app push.yourdomain.com -- cat /app/data/config/mattermost-push-proxy.json
+   ```
 
-4. **Common issues**
-   - Bundle ID mismatch (app vs push proxy config)
+4. **Check bundle IDs match:**
+   - iOS app bundle ID (in Xcode or fastlane config)
+   - `ApplePushTopic` in push proxy config
+   - Apple Developer portal certificate
+
+5. **Verify Mattermost server config:**
+   - System Console → Push Notification Server
+   - Should point to: `https://push.yourdomain.com`
+
+6. **Common issues:**
+   - Bundle ID mismatch
    - Wrong Team ID or Auth Key ID
    - Certificate file permissions
    - Firebase project not configured correctly
+   - Push proxy not accessible (check firewall/DNS)
+
+## Updating the Push Proxy
+
+### Update to New Upstream Version
+
+When a new version of mattermost-push-proxy is released:
+
+```bash
+cd /path/to/mattermost-push-proxy-cloudron-app
+
+# Update version in .env
+notepad .env
+# Change: PUSH_PROXY_VERSION=6.5.0
+
+# Build and push new version
+.\deploy.bat
+
+# Update in Cloudron dashboard (click UPDATE button)
+# OR use direct update:
+.\update-cloudron.bat
+```
+
+### Update Cloudron Package Version
+
+When you make changes to the Cloudron package (Dockerfile, start.sh, etc.):
+
+```bash
+# Edit CloudronManifest.json
+notepad CloudronManifest.json
+# Increment version: "version": "0.2.0"
+
+# Rebuild and deploy
+.\deploy.bat
+
+# Update in Cloudron dashboard
+```
 
 ## Security Notes
 
 ### Protect Your Credentials
 
-- **NEVER commit** `.p8` files or Firebase JSON to git
-- Add to `.gitignore`:
-  ```
-  *.p8
-  *firebase*.json
-  google-services.json
-  ```
+**NEVER commit these files to git:**
+- `.env` - Your configuration (already gitignored)
+- `*.p8` files - Apple Auth Keys
+- `*firebase*.json` - Firebase service accounts
+- `install-cloudron.bat` - Contains your domain
+- `update-cloudron.bat` - Contains your domain
+
+**These are safe to commit:**
+- `.env.example` - Template with placeholders
+- All documentation files
+- `deploy.bat`, `configure-cloudron.bat` - Read from .env
 
 ### File Permissions
 
-The push proxy runs as user `cloudron:cloudron`. All files in `/app/data/` are automatically chowned.
+The push proxy runs as user `cloudron:cloudron`. All files in `/app/data/` are automatically chowned on startup.
 
 ### HTTPS Only
 
@@ -332,63 +405,91 @@ Both Mattermost server and push proxy should use HTTPS. Cloudron handles this au
 
 ## Maintenance
 
-### Update Push Proxy
+### Renew/Update Certificates
 
-When a new version is released:
+**Apple Auth Keys:**
+- Never expire (unless revoked)
+- Can be regenerated if lost
+- Need to update push proxy config if regenerated
 
-```bash
-cd /path/to/mattermost-push-proxy-cloudron-app
+**Firebase Service Accounts:**
+- Never expire (unless deleted)
+- Can generate multiple keys for rotation
+- Update push proxy config and restart after rotation
 
-# Update version
-.\deploy.bat 6.5.0
-
-# In Cloudron dashboard, click "Update" on the push proxy app
-```
-
-### Renew Certificates
-
-- **Apple Auth Keys**: Never expire (unless revoked)
-- **Firebase Service Accounts**: Never expire (unless deleted)
-
-### Backup
+### Backup Important Files
 
 Backup these critical files:
-```
+
+```bash
+# Local backups (do this first!)
 /app/data/certs/apple_auth_key.p8
 /app/data/certs/firebase_service_account.json
 /app/data/config/mattermost-push-proxy.json
-```
 
-Download via Cloudron CLI:
-```bash
-cloudron pull --server my.yourdomain.com --app push.yourdomain.com /app/data/certs/ ./backup/
-cloudron pull --server my.yourdomain.com --app push.yourdomain.com /app/data/config/ ./backup/
+# Download via Cloudron CLI
+cloudron pull --app push.yourdomain.com /app/data/certs/ ./backup/certs/
+cloudron pull --app push.yourdomain.com /app/data/config/ ./backup/config/
 ```
 
 ## Reference
 
-- **Push Proxy Repo**: `/path/to/mattermost-push-proxy`
-- **Cloudron Package**: `/path/to/mattermost-push-proxy-cloudron-app`
-- **Mobile App**: `/path/to/mattermost-mobile`
-- **Mattermost Server**: `/path/to/mattermost`
+### File Locations
+
+**On your machine:**
+```
+mattermost-push-proxy-cloudron-app/
+├── .env                              # Your configuration (NOT committed)
+├── .env.example                      # Template (committed)
+├── AuthKey_XYZ9876543.p8             # Apple Auth Key (NOT committed)
+├── firebase-service-account.json     # Firebase credentials (NOT committed)
+├── install-cloudron.bat              # First-time install (NOT committed)
+├── update-cloudron.bat               # Direct update (NOT committed)
+├── deploy.bat                        # Build and push (committed)
+└── ... (other files)
+```
+
+**On Cloudron server:**
+```
+/app/code/                            # Push proxy binary
+├── bin/mattermost-push-proxy
+└── config/
+
+/app/data/                            # Persistent data
+├── certs/
+│   ├── apple_auth_key.p8
+│   └── firebase_service_account.json
+└── config/
+    └── mattermost-push-proxy.json
+```
+
+### Quick Reference Commands
+
+```bash
+# Setup
+.\setup-env.bat                      # Create .env from template
+.\install-cloudron.bat               # First-time install
+
+# Update
+.\deploy.bat                         # Build and push to Docker Hub
+.\update-cloudron.bat                # Direct update to Cloudron
+
+# Cloudron operations
+cloudron logs --app push.yourdomain.com
+cloudron exec --app push.yourdomain.com -- ls /app/data/certs/
+cloudron push --app push.yourdomain.com file.p8 /app/data/certs/
+cloudron pull --app push.yourdomain.com /app/data/certs/ ./backup/
+
+# Health check
+curl https://push.yourdomain.com/api/v1/health
+```
+
+### Links
 
 - **Apple Developer**: https://developer.apple.com/account/
 - **Firebase Console**: https://console.firebase.google.com/
-- **Cloudron Dashboard**: https://my.yourdomain.com
-- **Push Proxy**: https://push.yourdomain.com (after setup)
-- **Mattermost Server**: https://chat.yourdomain.com
-
-## Quick Reference
-
-| Item | Value |
-|------|-------|
-| **iOS Bundle ID** | `com.yourcompany.mattermost` |
-| **Android Package** | `com.yourcompany.mattermost` |
-| **Apple Team ID** | Found in Apple Developer portal |
-| **Apple Auth Key ID** | From downloaded `.p8` filename |
-| **Push Proxy URL** | `https://push.yourdomain.com` |
-| **Mattermost Server** | `https://chat.yourdomain.com` |
-| **Health Check** | `https://push.yourdomain.com/api/v1/health` |
+- **Mattermost Push Notifications Docs**: https://developers.mattermost.com/contribute/mobile/push-notifications/service/
+- **Cloudron Docs**: https://docs.cloudron.io/
 
 ---
 
