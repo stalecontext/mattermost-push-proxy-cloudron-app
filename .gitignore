@@ -19,3 +19,4 @@ install-cloudron.bat
 update-cloudron.bat
 Dockerfile.bak
 CLAUDE.md
+install-cloudron-simple.bat
