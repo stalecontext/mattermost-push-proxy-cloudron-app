@@ -5,6 +5,15 @@ node_modules/
 .env.local
 .cloudron/
 
+# Certificate files (NEVER commit these - sensitive!)
+*.p8
+*.pem
+*service_account*.json
+*firebase*.json
+*adminsdk*.json
+google-services.json
+AuthKey_*.p8
+
 # Private deployment scripts (contain sensitive info)
 install-cloudron.bat
 update-cloudron.bat
